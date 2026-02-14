@@ -1,0 +1,9 @@
+{
+  "name": "rich-claude-armor",
+  "description": "Safety and productivity hooks for Claude Code — blocks dangerous commands, protects sensitive files, enforces tool preferences, and provides desktop notifications",
+  "version": "0.1.0",
+  "author": { "name": "Richard Ayotte" },
+  "license": "MIT",
+  "repository": "https://github.com/RichAyotte/claude-plugins",
+  "keywords": ["claude-code", "hooks", "safety", "security"]
+}
