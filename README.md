@@ -1,6 +1,6 @@
 # claude-plugins
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Rich's Claude Code plugin marketplace.
 
