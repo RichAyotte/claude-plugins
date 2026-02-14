@@ -1,5 +1,7 @@
 # claude-plugins
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Rich's Claude Code plugin marketplace.
 
 ## Plugins
@@ -19,7 +21,3 @@ Safety and productivity hooks for Claude Code — blocks dangerous commands, pro
 | PreToolUse | Grep | Enforces tool preferences |
 | PostToolUse | (all) | Post-execution sensitive file checks |
 | Notification | (all) | Desktop notifications via notify-send |
-
-## License
-
-[MIT](LICENSE)
