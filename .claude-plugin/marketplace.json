@@ -1,5 +1,5 @@
 {
-  "name": "claude-plugins",
+  "name": "rich-plugins",
   "description": "Rich's Claude Code plugin marketplace",
   "owner": {
     "name": "Richard Ayotte"
