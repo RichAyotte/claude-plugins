@@ -6,9 +6,9 @@ Rich's Claude Code plugin marketplace.
 
 ## Plugins
 
-### rich-claude-armor
+### rich-blocks-claude
 
-Safety and productivity hooks for Claude Code — blocks dangerous commands, protects sensitive files, enforces tool preferences, and provides desktop notifications. See the [rich-claude-armor repo](https://github.com/RichAyotte/rich-claude-armor) for installation instructions.
+Safety and productivity hooks for Claude Code — blocks dangerous commands, protects sensitive files, enforces tool preferences, and provides desktop notifications. See the [rich-blocks-claude repo](https://github.com/RichAyotte/rich-blocks-claude) for installation instructions.
 
 **Hooks provided:**
 

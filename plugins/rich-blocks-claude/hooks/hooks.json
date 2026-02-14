@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "rich-claude-armor bash"
+            "command": "rich-blocks-claude bash"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "rich-claude-armor write"
+            "command": "rich-blocks-claude write"
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "rich-claude-armor read"
+            "command": "rich-blocks-claude read"
           }
         ]
       },
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "rich-claude-armor edit"
+            "command": "rich-blocks-claude edit"
           }
         ]
       },
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "rich-claude-armor grep"
+            "command": "rich-blocks-claude grep"
           }
         ]
       }
@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "rich-claude-armor post-sensitive"
+            "command": "rich-blocks-claude post-sensitive"
           }
         ]
       }
@@ -64,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "rich-claude-armor notify"
+            "command": "rich-blocks-claude notify"
           }
         ]
       }

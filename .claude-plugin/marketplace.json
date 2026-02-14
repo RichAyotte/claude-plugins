@@ -6,13 +6,13 @@
   },
   "plugins": [
     {
-      "name": "rich-claude-armor",
+      "name": "rich-blocks-claude",
       "description": "Safety and productivity hooks for Claude Code — blocks dangerous commands, protects sensitive files, enforces tool preferences, and provides desktop notifications",
       "version": "0.1.0",
       "author": {
         "name": "Richard Ayotte"
       },
-      "source": "./plugins/rich-claude-armor",
+      "source": "./plugins/rich-blocks-claude",
       "category": "security"
     }
   ]
