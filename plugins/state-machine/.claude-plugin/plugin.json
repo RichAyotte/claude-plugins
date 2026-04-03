@@ -1,0 +1,6 @@
+{
+	"name": "state-machine",
+	"version": "1.0.0",
+	"description": "Conversational builder for state machine JSON specifications based on Harel statecharts",
+	"keywords": ["state-machine", "statechart", "specification", "json", "cel"]
+}

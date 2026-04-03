@@ -1,0 +1,393 @@
+{
+	"key": "deviceLifecycle",
+	"name": "Device Lifecycle",
+	"description": "Hardware signer from factory state through initialization, operational use, firmware updates, to disabled or wiped",
+	"type": "compound",
+	"initial": "uninitialized",
+	"states": {
+		"uninitialized": {
+			"type": "atomic",
+			"on": {
+				"BEGIN_SETUP": "setup"
+			}
+		},
+		"setup": {
+			"type": "atomic",
+			"entry": "displaySetupWizard",
+			"on": {
+				"COMPLETE_SETUP": {
+					"target": "operational",
+					"guard": "isDeviceInitialized",
+					"actions": "setDeviceCredentials"
+				}
+			}
+		},
+		"operational": {
+			"type": "compound",
+			"initial": "locked",
+			"states": {
+				"locked": {
+					"type": "atomic",
+					"entry": "displayLockScreen",
+					"always": [
+						{
+							"target": "unlocked",
+							"guard": "isPinValid"
+						}
+					],
+					"on": {
+						"ENTER_PIN": {
+							"target": "unlocked",
+							"guard": "isPinValid",
+							"actions": "resetPinAttempts"
+						}
+					}
+				},
+				"unlocked": {
+					"type": "atomic",
+					"entry": "displayHomeScreen",
+					"exit": "clearDisplayMessage",
+					"always": [
+						{
+							"target": "signing",
+							"guard": "hasActiveTransaction"
+						}
+					],
+					"on": {
+						"SELECT_ACCOUNT": {
+							"guard": "isAuthorizedApp",
+							"actions": "setActiveAccount"
+						},
+						"LOCK_DEVICE": {
+							"target": "locked",
+							"actions": "clearSessionData"
+						}
+					}
+				},
+				"signing": {
+					"type": "atomic",
+					"entry": "displayTransactionDetails",
+					"exit": "clearDisplayMessage",
+					"always": [
+						{
+							"target": "unlocked",
+							"guard": "hasNoActiveTransaction"
+						}
+					],
+					"on": {}
+				}
+			},
+			"on": {
+				"START_FIRMWARE_UPDATE": {
+					"target": "updating",
+					"guard": "hasSufficientBattery",
+					"actions": "setFirmwareUpdateData"
+				},
+				"FACTORY_RESET": {
+					"target": "wiped",
+					"actions": ["wipeSeed", "clearAllAccounts", "resetDeviceSettings"]
+				},
+				"FAIL_PIN": {
+					"actions": "incrementPinAttempts"
+				},
+				"SECURITY_WIPE": {
+					"target": "disabled",
+					"guard": "isPinAttemptsExceeded",
+					"actions": ["wipeSeed", "clearAllAccounts", "resetDeviceSettings"]
+				}
+			}
+		},
+		"updating": {
+			"type": "atomic",
+			"entry": "displayUpdateProgress",
+			"on": {
+				"COMPLETE_FIRMWARE_UPDATE": {
+					"target": "operational",
+					"guard": "isFirmwareValid",
+					"actions": "applyFirmwareVersion"
+				},
+				"ABORT_FIRMWARE_UPDATE": {
+					"target": "operational",
+					"actions": "revertFirmwareData"
+				}
+			}
+		},
+		"disabled": {
+			"type": "final",
+			"on": {}
+		},
+		"wiped": {
+			"type": "final",
+			"on": {}
+		}
+	},
+	"events": [
+		{
+			"type": "BEGIN_SETUP",
+			"sources": ["uninitialized"],
+			"targets": {
+				"uninitialized": "setup"
+			},
+			"roles": ["user"]
+		},
+		{
+			"type": "COMPLETE_SETUP",
+			"sources": ["setup"],
+			"targets": {
+				"setup": {
+					"target": "operational",
+					"guard": "isDeviceInitialized",
+					"actions": "setDeviceCredentials"
+				}
+			},
+			"roles": ["user"],
+			"guard": "isDeviceInitialized",
+			"actions": ["setDeviceCredentials"],
+			"payloadFields": [
+				{
+					"name": "seed_fingerprint",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^[0-9a-f]{8}$')",
+						"error_message": "Must be 8-char hex BIP-32 master fingerprint"
+					}
+				},
+				{
+					"name": "pin_hash",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^[0-9a-f]{64}$')",
+						"error_message": "Must be 64-char hex SHA-256 hash of the PIN"
+					}
+				},
+				{
+					"name": "device_id",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^[A-Z0-9]{12}$')",
+						"error_message": "Must be 12-char alphanumeric device identifier"
+					}
+				},
+				{
+					"name": "locale",
+					"type": "string",
+					"required": false,
+					"validation": {
+						"cel": "value.matches('^[a-z]{2}$')",
+						"error_message": "Must be 2-char ISO 639-1 language code"
+					}
+				}
+			]
+		},
+		{
+			"type": "ENTER_PIN",
+			"sources": ["operational.locked"],
+			"targets": {
+				"operational.locked": {
+					"target": "unlocked",
+					"guard": "isPinValid",
+					"actions": "resetPinAttempts"
+				}
+			},
+			"roles": ["user"],
+			"guard": "isPinValid",
+			"actions": ["resetPinAttempts"],
+			"payloadFields": [
+				{
+					"name": "pin_hash",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^[0-9a-f]{64}$')",
+						"error_message": "Must be 64-char hex SHA-256 hash"
+					}
+				}
+			]
+		},
+		{
+			"type": "SELECT_ACCOUNT",
+			"sources": ["operational.unlocked"],
+			"targets": {
+				"operational.unlocked": {
+					"guard": "isAuthorizedApp",
+					"actions": "setActiveAccount"
+				}
+			},
+			"roles": ["host_app"],
+			"guard": "isAuthorizedApp",
+			"actions": ["setActiveAccount"],
+			"payloadFields": [
+				{
+					"name": "account_index",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^[0-9]+$')",
+						"error_message": "Must be a non-negative integer index"
+					}
+				},
+				{
+					"name": "app_id",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "size(value) >= 1 && size(value) <= 64",
+						"error_message": "Must be 1-64 char application identifier"
+					}
+				}
+			]
+		},
+		{
+			"type": "LOCK_DEVICE",
+			"sources": ["operational.unlocked", "operational.signing"],
+			"targets": {
+				"operational.unlocked": {
+					"target": "locked",
+					"actions": "clearSessionData"
+				},
+				"operational.signing": {
+					"target": "locked",
+					"actions": "clearSessionData"
+				}
+			},
+			"roles": ["user", "system"],
+			"actions": ["clearSessionData"]
+		},
+		{
+			"type": "FAIL_PIN",
+			"sources": ["operational"],
+			"targets": {
+				"operational": {
+					"actions": "incrementPinAttempts"
+				}
+			},
+			"roles": ["user"],
+			"actions": ["incrementPinAttempts"],
+			"payloadFields": [
+				{
+					"name": "pin_hash",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^[0-9a-f]{64}$')",
+						"error_message": "Must be 64-char hex SHA-256 hash"
+					}
+				}
+			]
+		},
+		{
+			"type": "START_FIRMWARE_UPDATE",
+			"sources": ["operational"],
+			"targets": {
+				"operational": {
+					"target": "updating",
+					"guard": "hasSufficientBattery",
+					"actions": "setFirmwareUpdateData"
+				}
+			},
+			"roles": ["host_app"],
+			"guard": "hasSufficientBattery",
+			"actions": ["setFirmwareUpdateData"],
+			"payloadFields": [
+				{
+					"name": "firmware_version",
+					"type": "number",
+					"required": true,
+					"validation": {
+						"cel": "value > 0 && value <= 99999",
+						"error_message": "Must be a positive firmware version number"
+					}
+				},
+				{
+					"name": "firmware_signature",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^[0-9a-f]{128}$')",
+						"error_message": "Must be 128-char hex Ed25519 signature"
+					}
+				}
+			]
+		},
+		{
+			"type": "COMPLETE_FIRMWARE_UPDATE",
+			"sources": ["updating"],
+			"targets": {
+				"updating": {
+					"target": "operational",
+					"guard": "isFirmwareValid",
+					"actions": "applyFirmwareVersion"
+				}
+			},
+			"roles": ["system"],
+			"guard": "isFirmwareValid",
+			"actions": ["applyFirmwareVersion"]
+		},
+		{
+			"type": "ABORT_FIRMWARE_UPDATE",
+			"sources": ["updating"],
+			"targets": {
+				"updating": {
+					"target": "operational",
+					"actions": "revertFirmwareData"
+				}
+			},
+			"roles": ["user", "system"],
+			"actions": ["revertFirmwareData"]
+		},
+		{
+			"type": "FACTORY_RESET",
+			"sources": ["operational"],
+			"targets": {
+				"operational": {
+					"target": "wiped",
+					"actions": ["wipeSeed", "clearAllAccounts", "resetDeviceSettings"]
+				}
+			},
+			"roles": ["user"],
+			"actions": ["wipeSeed", "clearAllAccounts", "resetDeviceSettings"]
+		},
+		{
+			"type": "SECURITY_WIPE",
+			"sources": ["operational"],
+			"targets": {
+				"operational": {
+					"target": "disabled",
+					"guard": "isPinAttemptsExceeded",
+					"actions": ["wipeSeed", "clearAllAccounts", "resetDeviceSettings"]
+				}
+			},
+			"roles": ["system"],
+			"guard": "isPinAttemptsExceeded",
+			"actions": ["wipeSeed", "clearAllAccounts", "resetDeviceSettings"]
+		}
+	],
+	"stateMeta": {
+		"uninitialized": {
+			"residence": ["secure_element"]
+		},
+		"setup": {
+			"residence": ["secure_element", "device_storage"]
+		},
+		"operational": {
+			"residence": ["secure_element", "device_storage", "host_app"]
+		},
+		"updating": {
+			"residence": ["secure_element", "device_storage", "host_app"]
+		},
+		"disabled": {
+			"residence": ["device_storage"]
+		},
+		"wiped": {
+			"residence": ["device_storage"]
+		}
+	},
+	"preconditions": [
+		"The device has been physically manufactured and has a functioning secure element — the machine starts at 'uninitialized' while the device contains only factory firmware and no user data.",
+		"The secure element is the authoritative root of trust for all cryptographic operations. The device storage, host application, and any cloud backup service are downstream or supplementary copies.",
+		"The uninitialized -> setup -> operational pipeline reflects the first-use flow: the device generates or imports a seed phrase into the secure element, the user sets a PIN, and the device provisions accounts from the HD derivation tree."
+	]
+}

@@ -1,0 +1,137 @@
+{
+	"id": "hwsigner",
+	"version": "1.0.0",
+	"key": "hwsigner",
+	"name": "Hardware Signer",
+	"description": "All hardware signer state machines running as independent concurrent parallel regions",
+	"type": "parallel",
+	"guardLanguage": "CEL",
+	"guards": {
+		"isPinValid": "event.pin_hash == context.pin_hash",
+		"isDeviceInitialized": "size(context.seed_fingerprint) > 0 && size(context.pin_hash) > 0",
+		"hasSufficientBattery": "context.battery_level >= 10",
+		"isFirmwareValid": "event.firmware_signature.matches('^[0-9a-f]{128}$') && event.firmware_version > context.firmware_version",
+		"isTransactionApproved": "event.user_confirmed == true && context.active_tx_hash == event.tx_hash",
+		"hasActiveTransaction": "size(context.active_tx_hash) > 0",
+		"isPinAttemptsExceeded": "context.pin_attempts >= context.max_pin_attempts",
+		"isAuthorizedApp": "context.paired_app_ids.exists(id, id == event.app_id)",
+		"canSignTransaction": "size(context.active_account_index) > 0 && context.battery_level >= 5",
+		"hasNoActiveTransaction": "size(context.active_tx_hash) == 0"
+	},
+	"objectTypes": {
+		"Account": {
+			"account_index": "string",
+			"derivation_path": "string",
+			"chain_id": "string",
+			"address": "string",
+			"label": "string",
+			"created_at": "string"
+		}
+	},
+	"contextTypes": {
+		"device_id": "string",
+		"firmware_version": "number",
+		"seed_fingerprint": "string",
+		"pin_hash": "string",
+		"pin_attempts": "number",
+		"max_pin_attempts": "number",
+		"battery_level": "number",
+		"active_account_index": "string",
+		"active_tx_hash": "string",
+		"active_tx_chain_id": "string",
+		"active_tx_amount": "string",
+		"active_tx_recipient": "string",
+		"last_signature": "string",
+		"paired_app_ids": "string[]",
+		"display_message": "string",
+		"locale": "string",
+		"accounts": "Account[]"
+	},
+	"context": {
+		"device_id": "",
+		"firmware_version": 0,
+		"seed_fingerprint": "",
+		"pin_hash": "",
+		"pin_attempts": 0,
+		"max_pin_attempts": 5,
+		"battery_level": 100,
+		"active_account_index": "",
+		"active_tx_hash": "",
+		"active_tx_chain_id": "",
+		"active_tx_amount": "",
+		"active_tx_recipient": "",
+		"last_signature": "",
+		"paired_app_ids": [],
+		"display_message": "",
+		"locale": "en",
+		"accounts": []
+	},
+	"contextResidence": {
+		"secure_element": {
+			"schema": "data-model/secure-element.schema.json",
+			"fields": {
+				"device_id": "$defs/device/properties/device_id",
+				"firmware_version": null,
+				"seed_fingerprint": "$defs/keystore/properties/master_fingerprint",
+				"pin_hash": "$defs/keystore/properties/pin_hash",
+				"pin_attempts": "$defs/keystore/properties/pin_attempts",
+				"max_pin_attempts": "$defs/keystore/properties/max_pin_attempts",
+				"battery_level": null,
+				"active_account_index": null,
+				"active_tx_hash": null,
+				"active_tx_chain_id": null,
+				"active_tx_amount": null,
+				"active_tx_recipient": null,
+				"last_signature": null,
+				"paired_app_ids": null,
+				"display_message": null,
+				"locale": null,
+				"accounts": null
+			}
+		},
+		"device_storage": {
+			"schema": "data-model/device-storage.schema.json",
+			"fields": {
+				"device_id": "$defs/device/properties/device_id",
+				"firmware_version": "$defs/firmware/properties/version",
+				"seed_fingerprint": null,
+				"pin_hash": null,
+				"pin_attempts": "$defs/security/properties/pin_attempts",
+				"max_pin_attempts": "$defs/security/properties/max_pin_attempts",
+				"battery_level": "$defs/hardware/properties/battery_level",
+				"active_account_index": "$defs/session/properties/active_account_index",
+				"active_tx_hash": "$defs/session/properties/active_tx_hash",
+				"active_tx_chain_id": "$defs/session/properties/active_tx_chain_id",
+				"active_tx_amount": "$defs/session/properties/active_tx_amount",
+				"active_tx_recipient": "$defs/session/properties/active_tx_recipient",
+				"last_signature": "$defs/session/properties/last_signature",
+				"paired_app_ids": "$defs/pairing/properties/app_ids",
+				"display_message": null,
+				"locale": "$defs/settings/properties/locale",
+				"accounts": "$defs/accounts"
+			}
+		},
+		"host_app": {
+			"schema": "data-model/host-app.schema.json",
+			"fields": {
+				"device_id": "$defs/paired_device/properties/device_id",
+				"firmware_version": "$defs/paired_device/properties/firmware_version",
+				"seed_fingerprint": "$defs/paired_device/properties/seed_fingerprint",
+				"pin_hash": null,
+				"pin_attempts": null,
+				"max_pin_attempts": null,
+				"battery_level": "$defs/paired_device/properties/battery_level",
+				"active_account_index": "$defs/transaction_session/properties/account_index",
+				"active_tx_hash": "$defs/transaction_session/properties/tx_hash",
+				"active_tx_chain_id": "$defs/transaction_session/properties/chain_id",
+				"active_tx_amount": "$defs/transaction_session/properties/amount",
+				"active_tx_recipient": "$defs/transaction_session/properties/recipient",
+				"last_signature": "$defs/transaction_session/properties/signature",
+				"paired_app_ids": null,
+				"display_message": null,
+				"locale": null,
+				"accounts": "$defs/paired_device/properties/accounts"
+			}
+		}
+	}
+}

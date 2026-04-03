@@ -1,0 +1,496 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "StateMachine",
+	"description": "State machine format for cross-language verification",
+	"type": "object",
+	"properties": {
+		"id": {
+			"type": "string"
+		},
+		"version": {
+			"type": "string"
+		},
+		"key": {
+			"type": "string",
+			"description": "URL/tab identifier"
+		},
+		"name": {
+			"type": "string",
+			"description": "Display name"
+		},
+		"description": {
+			"type": "string",
+			"description": "Brief purpose"
+		},
+		"type": {
+			"type": "string",
+			"enum": ["standalone", "parallel"],
+			"description": "Machine type: standalone (default) or parallel"
+		},
+		"guardLanguage": {
+			"type": "string",
+			"description": "Expression language for guard definitions (e.g. 'CEL')"
+		},
+		"guards": {
+			"type": "object",
+			"additionalProperties": {
+				"type": "string"
+			},
+			"description": "Guard name to expression mapping"
+		},
+		"initial": {
+			"type": "string"
+		},
+		"regions": {
+			"type": "object",
+			"additionalProperties": {
+				"type": "object",
+				"properties": {
+					"key": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"type": {
+						"type": "string",
+						"enum": ["compound"]
+					},
+					"initial": {
+						"type": "string"
+					},
+					"states": {
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/definitions/state"
+						}
+					},
+					"events": {
+						"type": "array",
+						"items": {
+							"$ref": "#/definitions/event"
+						}
+					},
+					"stateMeta": {
+						"type": "object",
+						"additionalProperties": {
+							"type": "object",
+							"properties": {
+								"residence": {
+									"type": "array",
+									"items": {
+										"type": "string"
+									}
+								}
+							},
+							"required": ["residence"],
+							"additionalProperties": false
+						}
+					},
+					"preconditions": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"statusStates": {
+						"type": "object",
+						"additionalProperties": {
+							"type": "object",
+							"properties": {
+								"type": {
+									"type": "string",
+									"enum": ["atomic", "compound", "final"]
+								},
+								"initial": {
+									"type": "string"
+								},
+								"states": {
+									"type": "object",
+									"additionalProperties": {
+										"type": "object",
+										"properties": {
+											"type": {
+												"type": "string",
+												"enum": ["atomic"]
+											},
+											"on": {
+												"type": "object",
+												"additionalProperties": {
+													"$ref": "#/definitions/transitionObject"
+												}
+											}
+										},
+										"additionalProperties": false
+									}
+								},
+								"on": {
+									"type": "object",
+									"additionalProperties": {
+										"$ref": "#/definitions/transitionObject"
+									}
+								}
+							},
+							"additionalProperties": false
+						},
+						"description": "Status lifecycle definition for context-driven status fields"
+					}
+				},
+				"required": [
+					"key",
+					"name",
+					"description",
+					"type",
+					"initial",
+					"states",
+					"events"
+				],
+				"additionalProperties": false
+			},
+			"description": "Region definitions for parallel machines — each region contains its own states, events, and optional stateMeta"
+		},
+		"objectTypes": {
+			"type": "object",
+			"additionalProperties": {
+				"type": "object",
+				"additionalProperties": {
+					"type": "string"
+				}
+			},
+			"description": "Structured type definitions that contextTypes can reference (e.g. Account → { account_index: string, ... })"
+		},
+		"contextTypes": {
+			"type": "object",
+			"additionalProperties": {
+				"type": "string"
+			},
+			"description": "Maps context field names to TS type strings"
+		},
+		"context": {
+			"type": "object",
+			"description": "Initial context values for the machine"
+		},
+		"contextResidence": {
+			"type": "object",
+			"additionalProperties": {
+				"type": "object",
+				"properties": {
+					"schema": {
+						"type": "string",
+						"description": "Relative path to the data model JSON Schema file"
+					},
+					"fields": {
+						"type": "object",
+						"additionalProperties": {
+							"oneOf": [{ "type": "string" }, { "type": "null" }]
+						},
+						"description": "Maps context field names to $defs paths in the schema, or null for workflow-only fields"
+					}
+				},
+				"required": ["schema", "fields"],
+				"additionalProperties": false
+			},
+			"description": "Maps residence system names to data model schema references and field mappings"
+		}
+	},
+	"required": ["id", "version", "regions"],
+	"additionalProperties": false,
+	"definitions": {
+		"actionsValue": {
+			"description": "One or more action names",
+			"oneOf": [
+				{ "type": "string" },
+				{ "type": "array", "items": { "type": "string" } }
+			]
+		},
+		"transitionObject": {
+			"type": "object",
+			"properties": {
+				"target": {
+					"type": "string"
+				},
+				"guard": {
+					"type": "string"
+				},
+				"actions": {
+					"$ref": "#/definitions/actionsValue"
+				}
+			},
+			"additionalProperties": false
+		},
+		"transition": {
+			"oneOf": [
+				{
+					"type": "string"
+				},
+				{
+					"$ref": "#/definitions/transitionObject"
+				},
+				{
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/transitionObject"
+					}
+				}
+			]
+		},
+		"leafState": {
+			"type": "object",
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": ["atomic", "final", "history", "deepHistory"]
+				},
+				"on": {
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/transition"
+					},
+					"description": "Transitions: event -> target or { target?, guard?, actions? }"
+				},
+				"always": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/transitionObject"
+					},
+					"description": "Conditional (eventless) transitions evaluated in order"
+				},
+				"entry": {
+					"$ref": "#/definitions/actionsValue",
+					"description": "Action(s) to execute when entering this state"
+				},
+				"exit": {
+					"$ref": "#/definitions/actionsValue",
+					"description": "Action(s) to execute when leaving this state"
+				},
+				"after": {
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/transition"
+					},
+					"description": "Delayed transitions keyed by duration (e.g. '30s', '5m', '1h')"
+				}
+			},
+			"required": ["type"],
+			"additionalProperties": false
+		},
+		"childState": {
+			"type": "object",
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": ["atomic", "compound", "parallel", "final", "history", "deepHistory"]
+				},
+				"initial": {
+					"type": "string",
+					"description": "Initial child state — required for compound states, absent for parallel (all children active)"
+				},
+				"states": {
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/leafState"
+					},
+					"description": "Child states (leaf level only)"
+				},
+				"on": {
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/transition"
+					},
+					"description": "Transitions: event -> target or { target?, guard?, actions? }"
+				},
+				"always": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/transitionObject"
+					},
+					"description": "Conditional (eventless) transitions evaluated in order"
+				},
+				"entry": {
+					"$ref": "#/definitions/actionsValue",
+					"description": "Action(s) to execute when entering this state"
+				},
+				"exit": {
+					"$ref": "#/definitions/actionsValue",
+					"description": "Action(s) to execute when leaving this state"
+				},
+				"after": {
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/transition"
+					},
+					"description": "Delayed transitions keyed by duration (e.g. '30s', '5m', '1h')"
+				}
+			},
+			"required": ["type"],
+			"additionalProperties": false
+		},
+		"state": {
+			"type": "object",
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": ["atomic", "compound", "parallel", "final", "history", "deepHistory"]
+				},
+				"initial": {
+					"type": "string",
+					"description": "Initial child state — required for compound states, absent for parallel (all children active)"
+				},
+				"states": {
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/childState"
+					},
+					"description": "Child states (supports compound and parallel children)"
+				},
+				"on": {
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/transition"
+					},
+					"description": "Transitions: event -> target or { target?, guard?, actions? }"
+				},
+				"always": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/transitionObject"
+					},
+					"description": "Conditional (eventless) transitions evaluated in order"
+				},
+				"entry": {
+					"$ref": "#/definitions/actionsValue",
+					"description": "Action(s) to execute when entering this state"
+				},
+				"exit": {
+					"$ref": "#/definitions/actionsValue",
+					"description": "Action(s) to execute when leaving this state"
+				},
+				"after": {
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/transition"
+					},
+					"description": "Delayed transitions keyed by duration (e.g. '30s', '5m', '1h')"
+				}
+			},
+			"required": ["type"],
+			"additionalProperties": false
+		},
+		"payloadField": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string",
+					"enum": ["string", "number", "boolean", "object", "array"]
+				},
+				"required": {
+					"type": "boolean"
+				},
+				"items": {
+					"$ref": "#/definitions/payloadField",
+					"description": "Element type descriptor — required when type is 'array'"
+				},
+				"properties": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/payloadField"
+					},
+					"description": "Field descriptors — required when type is 'object'"
+				},
+				"validation": {
+					"type": "object",
+					"properties": {
+						"cel": {
+							"type": "string",
+							"description": "CEL expression with `value` as the field variable"
+						},
+						"error_message": {
+							"type": "string"
+						}
+					},
+					"additionalProperties": false
+				}
+			},
+			"required": ["name", "type", "required"],
+			"additionalProperties": false
+		},
+		"event": {
+			"type": "object",
+			"properties": {
+				"type": {
+					"type": "string",
+					"description": "Event type identifier"
+				},
+				"sources": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"minItems": 1,
+					"description": "Source state(s) that accept this event"
+				},
+				"targets": {
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/transition"
+					},
+					"description": "Target state for each source, with optional guard"
+				},
+				"roles": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"minItems": 1,
+					"description": "Roles that can trigger this event"
+				},
+				"guard": {
+					"type": "string",
+					"description": "Guard name for this event"
+				},
+				"actions": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Action names associated with this event's transitions"
+				},
+				"payloadFields": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/payloadField"
+					},
+					"description": "Payload fields this event accepts"
+				},
+				"triggers": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/trigger"
+					},
+					"description": "Cross-machine events the SDK should fire when this event completes"
+				}
+			},
+			"required": ["type", "sources", "targets", "roles"],
+			"additionalProperties": false
+		},
+		"trigger": {
+			"type": "object",
+			"properties": {
+				"machine": {
+					"type": "string"
+				},
+				"event": {
+					"type": "string"
+				}
+			},
+			"required": ["machine", "event"],
+			"additionalProperties": false
+		}
+	}
+}

@@ -1,19 +1,29 @@
 {
-  "name": "rich-plugins",
   "description": "Rich's Claude Code plugin marketplace",
+  "name": "rich-plugins",
   "owner": {
     "name": "Richard Ayotte"
   },
   "plugins": [
     {
-      "name": "rich-blocks-claude",
-      "description": "Safety and productivity hooks for Claude Code — blocks dangerous commands, protects sensitive files, enforces tool preferences, and provides desktop notifications",
-      "version": "0.1.0",
       "author": {
         "name": "Richard Ayotte"
       },
+      "category": "security",
+      "description": "Safety and productivity hooks for Claude Code — blocks dangerous commands, protects sensitive files, enforces tool preferences, and provides desktop notifications",
+      "name": "rich-blocks-claude",
       "source": "./plugins/rich-blocks-claude",
-      "category": "security"
+      "version": "0.1.0"
+    },
+    {
+      "author": {
+        "name": "Richard Ayotte"
+      },
+      "category": "development",
+      "description": "Conversational builder for state machine JSON specifications based on Harel statecharts",
+      "name": "state-machine",
+      "source": "./plugins/state-machine",
+      "version": "1.0.0"
     }
   ]
 }

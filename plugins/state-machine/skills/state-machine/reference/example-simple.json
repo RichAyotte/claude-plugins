@@ -1,0 +1,187 @@
+{
+	"key": "txSigning",
+	"name": "Transaction Signing",
+	"description": "Single transaction lifecycle from submission through on-device review to signed, rejected, or timed-out outcome",
+	"type": "compound",
+	"initial": "idle",
+	"preconditions": [
+		"The device is in the unlocked state within the Device Lifecycle region before a transaction signing request can be accepted.",
+		"Transaction requests originate from the paired host application over an authenticated USB or Bluetooth channel. The device displays transaction details on its touchscreen and waits for physical user confirmation.",
+		"A transaction must reach 'signed' state before the host application broadcasts it to the network. This ordering is enforced at the orchestration layer, not by cross-region guards, because the signing and device lifecycle regions model independent concerns that coordinate in sequence."
+	],
+	"states": {
+		"idle": {
+			"type": "atomic",
+			"on": {
+				"REQUEST_SIGNATURE": {
+					"target": "reviewing",
+					"guard": "canSignTransaction",
+					"actions": "setTransactionData"
+				}
+			}
+		},
+		"reviewing": {
+			"type": "atomic",
+			"on": {
+				"APPROVE_TRANSACTION": {
+					"target": "signed",
+					"guard": "isTransactionApproved",
+					"actions": "recordSignature"
+				},
+				"REJECT_TRANSACTION": {
+					"target": "rejected",
+					"actions": "clearTransactionData"
+				},
+				"TIMEOUT_TRANSACTION": {
+					"target": "timedOut",
+					"actions": "clearTransactionData"
+				}
+			}
+		},
+		"signed": {
+			"type": "final",
+			"on": {}
+		},
+		"rejected": {
+			"type": "final",
+			"on": {}
+		},
+		"timedOut": {
+			"type": "final",
+			"on": {}
+		}
+	},
+	"events": [
+		{
+			"type": "REQUEST_SIGNATURE",
+			"sources": ["idle"],
+			"targets": {
+				"idle": {
+					"target": "reviewing",
+					"actions": "setTransactionData"
+				}
+			},
+			"roles": ["host_app"],
+			"guard": "canSignTransaction",
+			"actions": ["setTransactionData"],
+			"payloadFields": [
+				{
+					"name": "tx_hash",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^0x[0-9a-f]{64}$')",
+						"error_message": "Must be 66-char hex-encoded transaction hash (0x-prefixed)"
+					}
+				},
+				{
+					"name": "chain_id",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^[a-zA-Z0-9_-]{1,32}$')",
+						"error_message": "Must be 1-32 alphanumeric chain identifier"
+					}
+				},
+				{
+					"name": "recipient",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^0x[0-9a-fA-F]{40}$')",
+						"error_message": "Must be 42-char hex address (0x-prefixed, EIP-55)"
+					}
+				},
+				{
+					"name": "amount",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^[0-9]+(\\\\.[0-9]+)?$')",
+						"error_message": "Must be a non-negative decimal amount string"
+					}
+				},
+				{
+					"name": "app_id",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "size(value) >= 1 && size(value) <= 64",
+						"error_message": "Must be 1-64 char application identifier"
+					}
+				}
+			]
+		},
+		{
+			"type": "APPROVE_TRANSACTION",
+			"sources": ["reviewing"],
+			"targets": {
+				"reviewing": {
+					"target": "signed",
+					"guard": "isTransactionApproved",
+					"actions": "recordSignature"
+				}
+			},
+			"roles": ["user"],
+			"guard": "isTransactionApproved",
+			"actions": ["recordSignature"],
+			"payloadFields": [
+				{
+					"name": "tx_hash",
+					"type": "string",
+					"required": true,
+					"validation": {
+						"cel": "value.matches('^0x[0-9a-f]{64}$')",
+						"error_message": "Must be 66-char hex-encoded transaction hash (0x-prefixed)"
+					}
+				},
+				{
+					"name": "user_confirmed",
+					"type": "boolean",
+					"required": true
+				}
+			]
+		},
+		{
+			"type": "REJECT_TRANSACTION",
+			"sources": ["reviewing"],
+			"targets": {
+				"reviewing": {
+					"target": "rejected",
+					"actions": "clearTransactionData"
+				}
+			},
+			"roles": ["user"],
+			"actions": ["clearTransactionData"]
+		},
+		{
+			"type": "TIMEOUT_TRANSACTION",
+			"sources": ["reviewing"],
+			"targets": {
+				"reviewing": {
+					"target": "timedOut",
+					"actions": "clearTransactionData"
+				}
+			},
+			"roles": ["system"],
+			"actions": ["clearTransactionData"]
+		}
+	],
+	"stateMeta": {
+		"idle": {
+			"residence": ["device_storage"]
+		},
+		"reviewing": {
+			"residence": ["device_storage", "host_app"]
+		},
+		"signed": {
+			"residence": ["device_storage", "host_app", "secure_element"]
+		},
+		"rejected": {
+			"residence": ["device_storage", "host_app"]
+		},
+		"timedOut": {
+			"residence": ["device_storage", "host_app"]
+		}
+	}
+}
